@@ -1,5 +1,5 @@
 [workspace]
-members = ["codec", "codec-macros", "data", "proxy"]
+members = ["codec", "codec-macros", "data", "proxy", "server"]
 resolver = "2"
 
 [workspace.package]
