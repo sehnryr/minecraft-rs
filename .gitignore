@@ -1,0 +1,12 @@
+# IDE
+.idea/
+.vscode/
+.zed/
+
+# Direnv
+.direnv/
+.env
+.envrc.local
+
+# Rust
+target/
