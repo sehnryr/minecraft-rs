@@ -1,5 +1,5 @@
 [workspace]
-members = ["proxy"]
+members = ["codec", "data", "proxy"]
 resolver = "2"
 
 [workspace.package]
@@ -41,3 +41,10 @@ unneeded_field_pattern = "deny"
 unseparated_literal_suffix = "deny"
 unused_result_ok = "deny"
 unused_trait_names = "deny"
+
+[workspace.dependencies]
+codec = { path = "codec" }
+data = { path = "data" }
+
+env_logger = "0.11.8"
+log = "0.4.27"

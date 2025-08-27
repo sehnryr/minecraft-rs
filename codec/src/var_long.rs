@@ -1,0 +1,143 @@
+use std::io;
+
+use super::{
+    CONTINUE_MASK,
+    SEGMENT_MASK,
+};
+use crate::dec::{
+    Decode,
+    DecodeError,
+};
+use crate::enc::{
+    Encode,
+    EncodeError,
+};
+
+#[derive(Debug, Clone)]
+pub struct VarLong(Box<[u8]>);
+
+impl VarLong {
+    #[must_use]
+    pub fn new(mut value: u64) -> Self {
+        let mut bytes = Vec::new();
+
+        loop {
+            #[allow(
+                clippy::cast_possible_truncation,
+                reason = "truncate the value to fit into a byte"
+            )]
+            let byte = value as u8;
+            value >>= 7;
+
+            if value == 0 {
+                bytes.push(byte & SEGMENT_MASK);
+                break;
+            }
+
+            bytes.push(byte & SEGMENT_MASK | CONTINUE_MASK);
+        }
+
+        Self(bytes.into_boxed_slice())
+    }
+
+    #[must_use]
+    pub fn value(&self) -> u64 {
+        let mut value = 0;
+        let mut shift = 0;
+
+        for byte in &self.0 {
+            value |= u64::from(*byte & SEGMENT_MASK) << shift;
+            shift += 7;
+        }
+
+        value
+    }
+
+    #[must_use]
+    pub fn as_slice(&self) -> &[u8] { &self.0 }
+}
+
+impl From<VarLong> for u64 {
+    fn from(var_long: VarLong) -> Self { var_long.value() }
+}
+
+impl Decode for VarLong {
+    fn decode<R: io::Read>(reader: &mut R) -> Result<Self, DecodeError> {
+        let mut bytes = Vec::new();
+        let mut mask = 0xFFFF_FFFF_FFFF_FFFF_u64;
+
+        loop {
+            let byte = u8::decode(reader)?;
+
+            bytes.push(byte & SEGMENT_MASK);
+
+            #[allow(
+                clippy::cast_possible_truncation,
+                reason = "truncate the value to fit into a byte"
+            )]
+            if byte & (!mask as u8) != 0 {
+                return Err(DecodeError::InvalidVarLong);
+            }
+
+            if byte & CONTINUE_MASK == 0 {
+                break;
+            }
+
+            mask >>= 7;
+        }
+
+        Ok(Self(bytes.into_boxed_slice()))
+    }
+}
+
+impl Encode for VarLong {
+    fn encode<W: io::Write>(
+        &self,
+        writer: &mut W,
+    ) -> Result<usize, EncodeError> {
+        let bytes = self.0.as_ref();
+        writer.write_all(bytes)?;
+        Ok(bytes.len())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    macro_rules! var_long {
+        ($slice:expr, $expected:expr) => {
+            let result = VarLong::decode(&mut $slice.as_slice()).unwrap();
+            assert_eq!(result.value(), $expected);
+        };
+    }
+
+    #[rustfmt::skip]
+    #[test]
+    fn decode_var_long() {
+        var_long!([0x00], 0_u64);
+        var_long!([0x01], 1_u64);
+        var_long!([0x7F], 0x7F_u64);
+        var_long!([0x80, 0x01], 0x80_u64);
+        var_long!([0xFF, 0xFF, 0x01], 0x7FFF_u64);
+        var_long!([0x80, 0x80, 0x02], 0x8000_u64);
+        var_long!([0xFF, 0xFF, 0xFF, 0x03], 0x7F_FFFF_u64);
+        var_long!([0x80, 0x80, 0x80, 0x04], 0x80_0000_u64);
+        var_long!([0xFF, 0xFF, 0xFF, 0xFF, 0x07], 0x7FFF_FFFF_u64);
+        var_long!([0x80, 0x80, 0x80, 0x80, 0x08], 0x8000_0000_u64);
+        var_long!([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x0F], 0x7F_FFFF_FFFF_u64);
+        var_long!([0x80, 0x80, 0x80, 0x80, 0x80, 0x10], 0x80_0000_0000_u64);
+        var_long!([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x1F], 0x7FFF_FFFF_FFFF_u64);
+        var_long!([0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x20], 0x8000_0000_0000_u64);
+        var_long!([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x3F], 0x7F_FFFF_FFFF_FFFF_u64);
+        var_long!([0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x40], 0x80_0000_0000_0000_u64);
+        var_long!([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x7F], 0x7FFF_FFFF_FFFF_FFFF_u64);
+        var_long!([0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x01], 0x8000_0000_0000_0000_u64);
+        var_long!([0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01], 0xFFFF_FFFF_FFFF_FFFF_u64);
+
+        assert!(matches!(
+            VarLong::decode(&mut [0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x02].as_slice()),
+            Err(DecodeError::InvalidVarLong)
+        ));
+    }
+}

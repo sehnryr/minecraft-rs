@@ -1,7 +1,8 @@
 extern crate alloc;
 
+mod error;
+
 use std::net::{
-    Shutdown,
     TcpListener,
     TcpStream,
 };
@@ -11,7 +12,21 @@ use std::{
     thread,
 };
 
+use data::packet::{
+    ReadPacket as _,
+    WritePacket as _,
+};
+use log::{
+    debug,
+    error,
+    info,
+};
+
+use crate::error::Error;
+
 fn main() {
+    env_logger::init();
+
     let proxy_host = "0.0.0.0";
     let proxy_port = env::var("PROXY_PORT").unwrap_or("35565".to_owned());
     let proxy_addr = format!("{proxy_host}:{proxy_port}");
@@ -26,15 +41,19 @@ fn main() {
         let client = match client {
             Ok(client) => client,
             Err(err) => {
-                eprintln!("Failed to accept client connection: {err}");
+                error!("Failed to accept client connection: {err}");
                 continue;
             }
         };
 
+        if let Ok(client_addr) = client.peer_addr() {
+            info!("Accepted client connection from {client_addr}",);
+        }
+
         let server = match TcpStream::connect(&server_addr) {
             Ok(server) => server,
             Err(err) => {
-                eprintln!("Failed to connect to server: {err}");
+                error!("Failed to connect to server: {err}");
                 continue;
             }
         };
@@ -47,11 +66,33 @@ fn main() {
             .expect("Failed to clone server tcp stream");
 
         thread::spawn(move || {
-            relay(client_read, server);
+            match relay(client_read, server) {
+                Err(Error::Encode(err))
+                    if err
+                        .get_io_error()
+                        .filter(|err| err.kind() == io::ErrorKind::BrokenPipe)
+                        .is_some() =>
+                {
+                    // Ignore broken pipe errors
+                }
+                Err(err) => error!("Failed to relay client to server: {err}"),
+                _ => {}
+            }
         });
 
         thread::spawn(move || {
-            relay(server_read, client);
+            match relay(server_read, client) {
+                Err(Error::Encode(err))
+                    if err
+                        .get_io_error()
+                        .filter(|err| err.kind() == io::ErrorKind::BrokenPipe)
+                        .is_some() =>
+                {
+                    // Ignore broken pipe errors
+                }
+                Err(err) => error!("Failed to relay server to client: {err}"),
+                _ => {}
+            }
         });
     }
 }
@@ -59,7 +100,20 @@ fn main() {
 fn relay(
     mut from: TcpStream,
     mut to: TcpStream,
-) {
-    _ = io::copy(&mut from, &mut to);
-    _ = to.shutdown(Shutdown::Write);
+) -> Result<(), Error> {
+    loop {
+        // Check if EOF has been reached
+        if let Ok(n) = from.peek(&mut [0_u8])
+            && n == 0
+        {
+            // Connection closed
+            return Ok(());
+        }
+
+        let packet = from.read_packet()?;
+
+        debug!("{packet:?}");
+
+        to.write_packet(&packet)?;
+    }
 }
