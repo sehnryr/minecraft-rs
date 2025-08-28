@@ -26,11 +26,11 @@ impl fmt::Display for Uuid {
         write!(
             f,
             "{:08x}-{:04x}-{:04x}-{:04x}-{:012x}",
-            self.0 >> 24,
-            self.0 >> 20,
-            self.0 >> 16,
-            self.0 >> 12,
-            self.0,
+            self.0 >> (4 * 24) & 0xFFFF_FFFF,
+            self.0 >> (4 * 20) & 0xFFFF,
+            self.0 >> (4 * 16) & 0xFFFF,
+            self.0 >> (4 * 12) & 0xFFFF,
+            self.0 & 0xFFFF_FFFF_FFFF,
         )
     }
 }
@@ -65,6 +65,14 @@ mod tests {
         assert_eq!(
             "00000000-0000-0000-0000-000000000000".to_owned(),
             format!("{}", Uuid::null())
+        );
+    }
+
+    #[test]
+    fn uuid_random() {
+        assert_eq!(
+            "12345678-9abc-def0-1234-56789abcdef0".to_owned(),
+            format!("{}", Uuid(0x1234_5678_9ABC_DEF0_1234_5678_9ABC_DEF0))
         );
     }
 
