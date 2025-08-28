@@ -3,7 +3,7 @@ use codec::dec::Decode;
 #[derive(Debug, Decode)]
 pub struct Handshake {
     #[codec(varint)]
-    pub protocol_version: u32,
+    pub protocol_version: i32,
     pub server_address: String,
     pub server_port: u16,
     pub intent: Intent,

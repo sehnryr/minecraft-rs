@@ -15,14 +15,14 @@ use codec::enc::{
 
 #[derive(Debug)]
 pub struct Packet {
-    pub id: u32,
+    pub id: i32,
     pub data: Vec<u8>,
 }
 
 impl Packet {
     #[must_use]
     pub fn new(
-        id: u32,
+        id: i32,
         data: Vec<u8>,
     ) -> Self {
         Packet {
@@ -38,7 +38,13 @@ impl Decode for Packet {
             .err_context("Failed to decode packet length")?
             .value();
 
-        let mut data = vec![0; len as usize];
+        let len = if len < 0 {
+            return Err(DecodeError::InvalidVarInt);
+        } else {
+            len.cast_unsigned() as usize
+        };
+
+        let mut data = vec![0; len];
         reader.read_exact(&mut data)?;
         let mut data = data.as_slice();
 
@@ -59,9 +65,10 @@ impl Encode for Packet {
 
         #[allow(
             clippy::cast_possible_truncation,
-            reason = "Packet length are max VarInt, so u32 is safe"
+            clippy::cast_possible_wrap,
+            reason = "Packet length are max i32::MAX"
         )]
-        let packet_len = VarInt::new((id.as_slice().len() + data.len()) as u32);
+        let packet_len = VarInt::new((id.as_slice().len() + data.len()) as i32);
 
         let mut written_bytes = 0;
 

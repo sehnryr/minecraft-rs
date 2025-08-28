@@ -18,12 +18,13 @@ pub struct VarInt(Box<[u8]>);
 
 impl VarInt {
     #[must_use]
-    pub fn new(mut value: u32) -> Self {
+    pub fn new(mut value: i32) -> Self {
         let mut bytes = Vec::new();
 
         loop {
             #[allow(
                 clippy::cast_possible_truncation,
+                clippy::cast_sign_loss,
                 reason = "truncate the value to fit into a byte"
             )]
             let byte = value as u8;
@@ -41,12 +42,12 @@ impl VarInt {
     }
 
     #[must_use]
-    pub fn value(&self) -> u32 {
+    pub fn value(&self) -> i32 {
         let mut value = 0;
         let mut shift = 0;
 
         for byte in &self.0 {
-            value |= u32::from(*byte & SEGMENT_MASK) << shift;
+            value |= i32::from(*byte & SEGMENT_MASK) << shift;
             shift += 7;
         }
 
@@ -57,7 +58,7 @@ impl VarInt {
     pub fn as_slice(&self) -> &[u8] { &self.0 }
 }
 
-impl From<VarInt> for u32 {
+impl From<VarInt> for i32 {
     fn from(var_int: VarInt) -> Self { var_int.value() }
 }
 
@@ -101,6 +102,7 @@ impl Encode for VarInt {
     }
 }
 
+#[allow(overflowing_literals, reason = "tests")]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -114,17 +116,17 @@ mod tests {
 
     #[test]
     fn decode_var_int() {
-        var_int!([0x00], 0);
-        var_int!([0x01], 1);
-        var_int!([0x7F], 0x7F_u32);
-        var_int!([0x80, 0x01], 0x80_u32);
-        var_int!([0xFF, 0xFF, 0x01], 0x7FFF_u32);
-        var_int!([0x80, 0x80, 0x02], 0x8000_u32);
-        var_int!([0xFF, 0xFF, 0xFF, 0x03], 0x7F_FFFF_u32);
-        var_int!([0x80, 0x80, 0x80, 0x04], 0x80_0000_u32);
-        var_int!([0xFF, 0xFF, 0xFF, 0xFF, 0x07], 0x7FFF_FFFF_u32);
-        var_int!([0x80, 0x80, 0x80, 0x80, 0x08], 0x8000_0000_u32);
-        var_int!([0xFF, 0xFF, 0xFF, 0xFF, 0x0F], 0xFFFF_FFFF_u32);
+        var_int!([0x00], 0_i32);
+        var_int!([0x01], 1_i32);
+        var_int!([0x7F], 0x7F_i32);
+        var_int!([0x80, 0x01], 0x80_i32);
+        var_int!([0xFF, 0xFF, 0x01], 0x7FFF_i32);
+        var_int!([0x80, 0x80, 0x02], 0x8000_i32);
+        var_int!([0xFF, 0xFF, 0xFF, 0x03], 0x7F_FFFF_i32);
+        var_int!([0x80, 0x80, 0x80, 0x04], 0x80_0000_i32);
+        var_int!([0xFF, 0xFF, 0xFF, 0xFF, 0x07], 0x7FFF_FFFF_i32);
+        var_int!([0x80, 0x80, 0x80, 0x80, 0x08], 0x8000_0000_i32);
+        var_int!([0xFF, 0xFF, 0xFF, 0xFF, 0x0F], 0xFFFF_FFFF_i32);
 
         assert!(matches!(
             VarInt::decode(&mut [0x80, 0x80, 0x80, 0x80, 0x10].as_slice()),

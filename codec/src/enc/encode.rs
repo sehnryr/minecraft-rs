@@ -153,9 +153,10 @@ where
     ) -> Result<usize, EncodeError> {
         #[allow(
             clippy::cast_possible_truncation,
-            reason = "Vec should never have more than u32::MAX elements, so u32 is safe"
+            clippy::cast_possible_wrap,
+            reason = "Vec should never exceed i32::MAX elements"
         )]
-        let mut written_bytes = VarInt::new(self.len() as u32).encode(writer)?;
+        let mut written_bytes = VarInt::new(self.len() as i32).encode(writer)?;
 
         for elem in *self {
             written_bytes += elem.encode(writer)?;
@@ -186,9 +187,10 @@ impl Encode for &str {
 
         #[allow(
             clippy::cast_possible_truncation,
-            reason = "String length should never exceed u32::MAX, so u32 is safe"
+            clippy::cast_possible_wrap,
+            reason = "String length should never exceed i32::MAX"
         )]
-        let written_bytes = VarInt::new(bytes.len() as u32).encode(writer)?;
+        let written_bytes = VarInt::new(bytes.len() as i32).encode(writer)?;
 
         writer.write_all(bytes)?;
         Ok(written_bytes + bytes.len())

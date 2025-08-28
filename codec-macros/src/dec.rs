@@ -121,7 +121,7 @@ pub fn derive_enum(
     let decode_impl = match kind {
         EnumKind::VarInt => {
             quote! {
-                let raw: u32 = ::codec::VarInt::decode(reader)
+                let raw = ::codec::VarInt::decode(reader)
                     .err_context(#ctx)?
                     .value();
                 match raw {
@@ -137,7 +137,7 @@ pub fn derive_enum(
         }
         EnumKind::VarLong => {
             quote! {
-                let raw: u64 = ::codec::VarLong::decode(reader)
+                let raw = ::codec::VarLong::decode(reader)
                     .err_context(#ctx)?
                     .value();
                 match raw {

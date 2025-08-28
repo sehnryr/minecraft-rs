@@ -95,7 +95,13 @@ where
     fn decode<R: io::Read>(reader: &mut R) -> Result<Self, DecodeError> {
         let len = VarInt::decode(reader)
             .err_context("Failed to decode vec length")?
-            .value() as usize;
+            .value();
+
+        let len = if len < 0 {
+            return Err(DecodeError::InvalidVarInt);
+        } else {
+            len.cast_unsigned() as usize
+        };
 
         let mut vec = Vec::with_capacity(len);
 
@@ -112,7 +118,13 @@ impl Decode for String {
     fn decode<R: io::Read>(reader: &mut R) -> Result<Self, DecodeError> {
         let len = VarInt::decode(reader)
             .err_context("Failed to decode string length")?
-            .value() as usize;
+            .value();
+
+        let len = if len < 0 {
+            return Err(DecodeError::InvalidVarInt);
+        } else {
+            len.cast_unsigned() as usize
+        };
 
         let mut bytes = vec![0; len];
         reader.read_exact(&mut bytes)?;
@@ -151,7 +163,13 @@ impl Decode for json::JsonValue {
     fn decode<R: io::Read>(reader: &mut R) -> Result<Self, DecodeError> {
         let len = VarInt::decode(reader)
             .err_context("Failed to decode json length")?
-            .value() as usize;
+            .value();
+
+        let len = if len < 0 {
+            return Err(DecodeError::InvalidVarInt);
+        } else {
+            len.cast_unsigned() as usize
+        };
 
         let mut bytes = vec![0; len];
         reader.read_exact(&mut bytes)?;

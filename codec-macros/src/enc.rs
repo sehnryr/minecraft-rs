@@ -120,14 +120,14 @@ pub fn derive_enum(
     let encode_impl = match kind {
         EnumKind::VarInt => {
             quote! {
-                ::codec::VarInt::new(*self as u32)
+                ::codec::VarInt::new(*self as i32)
                     .encode(writer)
                     .err_context(#ctx)
             }
         }
         EnumKind::VarLong => {
             quote! {
-                ::codec::VarLong::new(*self as u64)
+                ::codec::VarLong::new(*self as i64)
                     .encode(writer)
                     .err_context(#ctx)
             }
