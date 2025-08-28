@@ -10,12 +10,21 @@ use crate::enc::{
     EncodeError,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub struct Uuid(u128);
 
 impl Uuid {
     #[must_use]
     pub const fn null() -> Self { Self(0) }
+}
+
+impl fmt::Debug for Uuid {
+    fn fmt(
+        &self,
+        f: &mut fmt::Formatter<'_>,
+    ) -> fmt::Result {
+        write!(f, "Uuid({self})")
+    }
 }
 
 impl fmt::Display for Uuid {
