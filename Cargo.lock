@@ -64,6 +64,18 @@ dependencies = [
 [[package]]
 name = "codec"
 version = "0.1.0"
+dependencies = [
+ "codec-macros",
+]
+
+[[package]]
+name = "codec-macros"
+version = "0.1.0"
+dependencies = [
+ "codec",
+ "quote",
+ "syn",
+]
 
 [[package]]
 name = "colorchoice"

@@ -6,12 +6,14 @@ use std::net::{
     TcpListener,
     TcpStream,
 };
+use std::sync::mpsc;
 use std::{
     env,
-    io,
     thread,
 };
 
+use codec::dec::Decode as _;
+use data::model::Handshake;
 use data::packet::{
     ReadPacket as _,
     WritePacket as _,
@@ -58,43 +60,39 @@ fn main() {
             }
         };
 
-        let client_read = client
-            .try_clone()
-            .expect("Failed to clone client tcp stream");
-        let server_read = server
-            .try_clone()
-            .expect("Failed to clone server tcp stream");
-
         thread::spawn(move || {
-            match relay(client_read, server) {
-                Err(Error::Encode(err))
-                    if err
-                        .get_io_error()
-                        .filter(|err| err.kind() == io::ErrorKind::BrokenPipe)
-                        .is_some() =>
-                {
-                    // Ignore broken pipe errors
-                }
-                Err(err) => error!("Failed to relay client to server: {err}"),
-                _ => {}
-            }
-        });
-
-        thread::spawn(move || {
-            match relay(server_read, client) {
-                Err(Error::Encode(err))
-                    if err
-                        .get_io_error()
-                        .filter(|err| err.kind() == io::ErrorKind::BrokenPipe)
-                        .is_some() =>
-                {
-                    // Ignore broken pipe errors
-                }
-                Err(err) => error!("Failed to relay server to client: {err}"),
-                _ => {}
+            if let Err(err) = handle_connection(client, server) {
+                error!("Failed to handle connection: {err}");
             }
         });
     }
+}
+
+fn handle_connection(
+    mut client: TcpStream,
+    mut server: TcpStream,
+) -> Result<(), Error> {
+    let packet = client.read_packet()?;
+
+    let handshake = Handshake::decode(&mut packet.data.as_slice())?;
+    debug!("{handshake:?}");
+
+    server.write_packet(&packet)?;
+
+    // Pump remaining data between client and server
+    let client_read = client.try_clone().map_err(Error::TcpStreamClone)?;
+    let server_read = server.try_clone().map_err(Error::TcpStreamClone)?;
+
+    let (tx1, rx1) = mpsc::channel();
+    let (tx2, rx2) = mpsc::channel();
+
+    thread::spawn(move || tx1.send(relay(client_read, server)));
+    thread::spawn(move || tx2.send(relay(server_read, client)));
+
+    rx1.recv()??;
+    rx2.recv()??;
+
+    Ok(())
 }
 
 fn relay(

@@ -1,5 +1,5 @@
 [workspace]
-members = ["codec", "data", "proxy"]
+members = ["codec", "codec-macros", "data", "proxy"]
 resolver = "2"
 
 [workspace.package]
@@ -44,6 +44,7 @@ unused_trait_names = "deny"
 
 [workspace.dependencies]
 codec = { path = "codec" }
+codec-macros = { path = "codec-macros" }
 data = { path = "data" }
 
 env_logger = "0.11.8"

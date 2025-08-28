@@ -2,12 +2,16 @@ use core::{
     error,
     fmt,
 };
+use std::io;
+use std::sync::mpsc;
 
 use codec::dec::DecodeError;
 use codec::enc::EncodeError;
 
 #[derive(Debug)]
 pub enum Error {
+    MpscRecv(mpsc::RecvError),
+    TcpStreamClone(io::Error),
     Decode(DecodeError),
     Encode(EncodeError),
 }
@@ -18,6 +22,8 @@ impl fmt::Display for Error {
         f: &mut fmt::Formatter<'_>,
     ) -> fmt::Result {
         match self {
+            Self::MpscRecv(err) => write!(f, "MPSC receive error: {err}"),
+            Self::TcpStreamClone(err) => write!(f, "TCP stream clone error: {err}"),
             Self::Decode(err) => write!(f, "Decode error: {err}"),
             Self::Encode(err) => write!(f, "Encode error: {err}"),
         }
@@ -25,6 +31,10 @@ impl fmt::Display for Error {
 }
 
 impl error::Error for Error {}
+
+impl From<mpsc::RecvError> for Error {
+    fn from(err: mpsc::RecvError) -> Self { Self::MpscRecv(err) }
+}
 
 impl From<DecodeError> for Error {
     fn from(err: DecodeError) -> Self { Self::Decode(err) }

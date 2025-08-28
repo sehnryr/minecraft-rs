@@ -1,11 +1,18 @@
 [package]
-name = "codec"
+name = "codec-macros"
 version = "0.1.0"
 edition.workspace = true
 publish.workspace = true
 
+[lib]
+proc-macro = true
+
 [dependencies]
-codec-macros.workspace = true
+syn = "2"
+quote = "1"
+
+[dev-dependencies]
+codec = { path = "../codec" }
 
 [lints]
 workspace = true
