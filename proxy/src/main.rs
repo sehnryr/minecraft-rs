@@ -89,6 +89,9 @@ fn handle_connection(
     mut client: TcpStream,
     mut server: TcpStream,
 ) -> Result<(), Error> {
+    _ = client.set_nodelay(true);
+    _ = server.set_nodelay(true);
+
     let mut connection_state = ConnectionState::Handshake;
 
     loop {
@@ -207,6 +210,9 @@ fn relay(
     mut from: TcpStream,
     mut to: TcpStream,
 ) -> Result<(), Error> {
+    _ = from.set_nodelay(true);
+    _ = to.set_nodelay(true);
+
     loop {
         // Check if EOF has been reached
         if let Ok(n) = from.peek(&mut [0_u8])
