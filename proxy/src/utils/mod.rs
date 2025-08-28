@@ -10,7 +10,7 @@ use log::debug;
 use crate::error::Error;
 
 pub fn inject_status_description_message(packet: &Packet) -> Result<Packet, Error> {
-    let mut json_response = JsonValue::decode(&mut packet.data.as_slice())?;
+    let mut json_response = JsonValue::decode(&mut packet.data.as_ref())?;
     debug!("Recieved Status response: {json_response}");
 
     if json_response["description"].is_null() {
@@ -49,7 +49,7 @@ pub fn inject_status_description_message(packet: &Packet) -> Result<Packet, Erro
         .encode(&mut data)
         .err_context("Failed to encode status response")?;
 
-    let packet = Packet::new(packet.id, data);
+    let packet = Packet::new(packet.id, &data);
 
     Ok(packet)
 }

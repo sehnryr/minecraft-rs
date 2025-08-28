@@ -14,6 +14,7 @@ pub enum Error {
     TcpStreamClone(io::Error),
     Decode(DecodeError),
     Encode(EncodeError),
+    UnknownPacketId(i32),
 }
 
 impl fmt::Display for Error {
@@ -26,6 +27,7 @@ impl fmt::Display for Error {
             Self::TcpStreamClone(err) => write!(f, "TCP stream clone error: {err}"),
             Self::Decode(err) => write!(f, "Decode error: {err}"),
             Self::Encode(err) => write!(f, "Encode error: {err}"),
+            Self::UnknownPacketId(id) => write!(f, "Unknown packet ID: {id}"),
         }
     }
 }
