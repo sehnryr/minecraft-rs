@@ -13,7 +13,10 @@ use std::{
 };
 
 use codec::dec::Decode as _;
-use data::model::Handshake;
+use data::model::{
+    Handshake,
+    Intent,
+};
 use data::packet::{
     ReadPacket as _,
     WritePacket as _,
@@ -68,16 +71,58 @@ fn main() {
     }
 }
 
+enum ConnectionState {
+    Handshake,
+    Status,
+    Login,
+    Configuration,
+    Play,
+}
+
 fn handle_connection(
     mut client: TcpStream,
     mut server: TcpStream,
 ) -> Result<(), Error> {
-    let packet = client.read_packet()?;
+    let mut connection_state = ConnectionState::Handshake;
 
-    let handshake = Handshake::decode(&mut packet.data.as_slice())?;
-    debug!("{handshake:?}");
+    loop {
+        match connection_state {
+            ConnectionState::Handshake => {
+                // 0x00 intention
+                let packet = client.read_packet()?;
+                server.write_packet(&packet)?;
 
-    server.write_packet(&packet)?;
+                let handshake = Handshake::decode(&mut packet.data.as_slice())?;
+                debug!("Recieved Handshake: {handshake:?}");
+
+                match handshake.intent {
+                    Intent::Status => connection_state = ConnectionState::Status,
+                    Intent::Login => connection_state = ConnectionState::Login,
+                    Intent::Transfer => {
+                        // after a transfer command from the Configuration or Play state, we should
+                        // recieve a handshake with the Transfer intent, and then a login packet
+                        connection_state = ConnectionState::Login;
+                    }
+                }
+            }
+            ConnectionState::Status => {
+                // TODO: parse status packets
+                break;
+            }
+            ConnectionState::Login => {
+                // TODO: parse login packets
+                break;
+            }
+            ConnectionState::Configuration => {
+                // TODO: parse configuration packets
+                break;
+            }
+            ConnectionState::Play => {
+                // TODO: parse play packets
+                break;
+            }
+        }
+    }
 
     // Pump remaining data between client and server
     let client_read = client.try_clone().map_err(Error::TcpStreamClone)?;
