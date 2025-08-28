@@ -242,6 +242,15 @@ impl_tuple_encode!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
 impl_tuple_encode!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 impl_tuple_encode!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
 
+impl Encode for json::JsonValue {
+    fn encode<W: io::Write>(
+        &self,
+        writer: &mut W,
+    ) -> Result<usize, EncodeError> {
+        self.dump().encode(writer)
+    }
+}
+
 #[allow(clippy::unwrap_used, reason = "tests")]
 #[cfg(test)]
 mod tests {

@@ -19,6 +19,7 @@ pub enum DecodeError {
     InvalidUtf8(str::Utf8Error),
     InvalidVarInt,
     InvalidVarLong,
+    Json(json::Error),
 }
 
 impl DecodeError {
@@ -51,6 +52,7 @@ impl fmt::Display for DecodeError {
             DecodeError::InvalidUtf8(err) => write!(f, "Invalid UTF-8 sequence: {err}"),
             DecodeError::InvalidVarInt => write!(f, "Invalid VarInt"),
             DecodeError::InvalidVarLong => write!(f, "Invalid VarLong"),
+            DecodeError::Json(err) => write!(f, "JSON error: {err}"),
         }
     }
 }
@@ -72,6 +74,10 @@ impl From<str::Utf8Error> for DecodeError {
 
 impl From<string::FromUtf8Error> for DecodeError {
     fn from(err: string::FromUtf8Error) -> Self { DecodeError::InvalidUtf8(err.utf8_error()) }
+}
+
+impl From<json::Error> for DecodeError {
+    fn from(err: json::Error) -> Self { DecodeError::Json(err) }
 }
 
 pub trait DecodeErrorContext {

@@ -147,6 +147,22 @@ impl_tuple_decode!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10);
 impl_tuple_decode!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11);
 impl_tuple_decode!(T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12);
 
+impl Decode for json::JsonValue {
+    fn decode<R: io::Read>(reader: &mut R) -> Result<Self, DecodeError> {
+        let len = VarInt::decode(reader)
+            .err_context("Failed to decode json length")?
+            .value() as usize;
+
+        let mut bytes = vec![0; len];
+        reader.read_exact(&mut bytes)?;
+
+        let raw_json = str::from_utf8(&bytes)?;
+        let json = json::parse(raw_json)?;
+
+        Ok(json)
+    }
+}
+
 #[allow(clippy::unwrap_used, reason = "tests")]
 #[cfg(test)]
 mod tests {
