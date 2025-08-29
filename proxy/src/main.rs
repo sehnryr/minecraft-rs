@@ -8,11 +8,9 @@ use std::net::{
     TcpStream,
 };
 use std::sync::mpsc;
-use std::{
-    env,
-    thread,
-};
+use std::thread;
 
+use clap::Parser;
 use codec::dec::Decode as _;
 use data::model::{
     handshake,
@@ -31,16 +29,32 @@ use log::{
 
 use crate::error::Error;
 
+#[derive(Parser, Debug)]
+#[command(version)]
+struct Cli {
+    #[arg(long, env, default_value = "35565")]
+    proxy_port: u16,
+    #[arg(long, env)]
+    server_host: String,
+    #[arg(long, env, default_value = "25565")]
+    server_port: u16,
+}
+
 fn main() {
     env_logger::init();
 
-    let proxy_host = "0.0.0.0";
-    let proxy_port = env::var("PROXY_PORT").unwrap_or("35565".to_owned());
-    let proxy_addr = format!("{proxy_host}:{proxy_port}");
+    let args = Cli::parse();
 
-    let server_host = env::var("SERVER_HOST").unwrap_or("127.0.0.1".to_owned());
-    let server_port = env::var("SERVER_PORT").unwrap_or("25565".to_owned());
-    let server_addr = format!("{server_host}:{server_port}");
+    let proxy_addr = format!(
+        "{proxy_host}:{proxy_port}",
+        proxy_host = "0.0.0.0",
+        proxy_port = args.proxy_port
+    );
+    let server_addr = format!(
+        "{server_host}:{server_port}",
+        server_host = args.server_host,
+        server_port = args.server_port
+    );
 
     let listener = TcpListener::bind(proxy_addr).expect("Failed to bind to proxy address");
 

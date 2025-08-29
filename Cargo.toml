@@ -47,6 +47,7 @@ codec = { path = "codec" }
 codec-macros = { path = "codec-macros" }
 data = { path = "data" }
 
+clap = "4.5.46"
 env_logger = "0.11.8"
 flate2 = "1.1.2"
 json = "0.12.4"

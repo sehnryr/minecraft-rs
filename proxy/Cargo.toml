@@ -8,6 +8,7 @@ publish.workspace = true
 codec.workspace = true
 data.workspace = true
 
+clap = { workspace = true, features = ["derive", "env"] }
 env_logger.workspace = true
 json.workspace = true
 log.workspace = true
