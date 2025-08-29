@@ -7,40 +7,56 @@ edition = "2024"
 publish = false
 
 [workspace.lints.clippy]
-cargo = { level = "deny", priority = -1 }
-complexity = { level = "deny", priority = -1 }
-pedantic = { level = "deny", priority = -1 }
-perf = { level = "deny", priority = -1 }
-style = { level = "deny", priority = -1 }
-suspicious = { level = "deny", priority = -1 }
 
-# use alloc and core instead of std
-alloc_instead_of_core = "deny"
-std_instead_of_alloc = "deny"
-std_instead_of_core = "deny"
+# Treat common classes of issues as hard errors across the workspace.
+cargo = { level = "deny", priority = -1 }      # bad Cargo metadata/usages
+complexity = { level = "deny", priority = -1 } # hard-to-read/maintain code
+pedantic = { level = "deny", priority = -1 }   # strict correctness/clarity
+perf = { level = "deny", priority = -1 }       # performance pitfalls
+style = { level = "deny", priority = -1 }      # inconsistent style
+suspicious = { level = "deny", priority = -1 } # likely bugs/typos
 
-# always use expect instead of unwrap
-unwrap_used = "deny"
+# Enforce no-std friendly code: prefer core/alloc, avoid std.
+alloc_instead_of_core = "deny" # using alloc when core is sufficient
+std_instead_of_alloc = "deny"  # using std where alloc suffices
+std_instead_of_core = "deny"   # using std where core suffices
 
-# deny floating point arithmetic
+# Forbid silent panics via unwrap; force explicit failure context.
+unwrap_used = "deny" # require expect(..) with a message
+
+# Avoid floating-point unless explicitly vetted (determinism, perf, WASM/no-std).
 float_arithmetic = "deny"
 
-# other lints
-allow_attributes_without_reason = "deny"
-missing_assert_message = "deny"
+# Require justification for broad allowances; enforce meaningful asserts.
+allow_attributes_without_reason = "deny" # demand rationale in #[allow(..)]
+missing_assert_message = "deny"          # asserts must include a message
+
+# Discourage Rc in buffer/mutex scenarios (use Arc/Mutex/RwLock appropriately).
 rc_buffer = "deny"
 rc_mutex = "deny"
+
+# Keep module names and file names aligned for discoverability.
 self_named_module_files = "deny"
+
+# Ban accident-prone tokens and suffixes that reduce readability.
 semicolon_outside_block = "deny"
-single_char_lifetime_names = "deny"
-str_to_string = "deny"
-string_lit_chars_any = "deny"
-string_to_string = "deny"
+unseparated_literal_suffix = "deny"
+
+# Improve readability and API surface quality.
+single_char_lifetime_names = "deny" # prefer descriptive lifetimes
+unused_trait_names = "deny"         # remove dead trait names
+
+# Prevent noise and brittle patterns in matches/imports.
 unnecessary_self_imports = "deny"
 unneeded_field_pattern = "deny"
-unseparated_literal_suffix = "deny"
+
+# Avoid needless allocations/conversions in hot paths.
+str_to_string = "deny"        # prefer .to_owned() or borrow
+string_to_string = "deny"     # redundant clone-like conversion
+string_lit_chars_any = "deny" # inefficient char iteration on literals
+
+# Don’t silently drop Ok values; make intent explicit.
 unused_result_ok = "deny"
-unused_trait_names = "deny"
 
 [workspace.dependencies]
 codec = { path = "codec" }
