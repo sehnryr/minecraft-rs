@@ -4,6 +4,9 @@ resolver = "2"
 
 [workspace.package]
 edition = "2024"
+authors = ["Youn Mélois <youn@melois.dev>"]
+repository = "https://github.com/sehnryr/minecraft-rs"
+license = "MIT"
 publish = false
 
 [workspace.lints.clippy]

@@ -30,7 +30,7 @@ use log::{
 use crate::error::Error;
 
 #[derive(Parser, Debug)]
-#[command(version)]
+#[command(about, version, author)]
 struct Cli {
     #[arg(long, env, default_value = "35565")]
     proxy_port: u16,
